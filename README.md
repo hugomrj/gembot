@@ -11,7 +11,7 @@ API de prueba hecha con Bottle.
 
 ```bash
 # Clonar el repositorio (si corresponde)
-git clone https://github.com/tu_usuario/gembot.git
+git clone https://github.com/hugomrj/gembot
 cd gembot
 
 # Crear entorno virtual
@@ -42,13 +42,6 @@ Crear el archivo `app/google_keys.json` con el siguiente contenido, reemplazando
 
 # Ejecutar local
 python run.py
-
-
-
-
-
-
-
 
 
 
