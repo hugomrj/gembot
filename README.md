@@ -29,7 +29,8 @@ pip install -r requirements.txt
 
 # Configuración inicial
 
-Crear el archivo `app/google_keys.json` con el siguiente contenido, reemplazando "api_key" por tu clave real:
+Crear el archivo `app/google_keys.json` con el siguiente contenido, reemplazando "api_key" 
+por tu clave real:
 
 {
     "GOOGLE_API_KEYS": [
