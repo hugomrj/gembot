@@ -9,35 +9,39 @@ from datetime import date
 
 
 
-def get_gemma_response(prompt: str) -> str:
+def get_gemma_response(prompt: str, max_retries: int = 2) -> str:
     """
     Envía un prompt al modelo Gemma y retorna su respuesta de texto.
     """
+    last_error = None
 
-    model = genai.GenerativeModel(settings.gemma_model_name)
+    for attempt in range(max_retries):
+        try:
+            key = settings.get_random_key()
+            model = genai.GenerativeModel(settings.gemma_model_name)
 
-    generation_config = genai.types.GenerationConfig(
-        temperature=settings.gemma_temperature,
-        top_p=settings.gemma_top_p,
-        top_k=settings.gemma_top_k,
-        max_output_tokens=settings.gemma_max_output_tokens
-    )
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.0,
+                    top_p=1.0,
+                    top_k=1,
+                    max_output_tokens=512
+                )
+            )
 
-    try:
-        response = model.generate_content(
-            prompt,
-            generation_config=generation_config
-        )
-        if response.text:
-            return response.text
-        else:
-            # Puedes añadir más detalles de log aquí si lo necesitas
-            # print(f"DEBUG: Gemma response was empty or blocked. Candidates: {response.candidates}")
-            return "No se pudo generar una respuesta. Inténtelo de nuevo."
-    except Exception as e:
-        # Registra el error antes de relanzarlo para que el endpoint lo maneje.
-        print(f"ERROR: Error al interactuar con el modelo Gemma: {e}")
-        raise # Relanza la excepción para que FastAPI la convierta en un error HTTP
+            print(response.text)
+
+            return response.text or "No se pudo generar respuesta a la solicitud"
+
+        except Exception as e:
+            last_error = e
+            print(f"Intento {attempt+1} fallido (key: {key[-6:]}) - Error: {str(e)[:200]}")
+            continue
+
+    print(f"Fallo definitivo. Último error: {str(last_error)[:300]}")
+    raise RuntimeError("Error al procesar la solicitud. Intente nuevamente.")
+
 
 
 
