@@ -3,13 +3,13 @@ import datetime
 import json
 import google.generativeai as genai
 from app.config import settings
-from app.normalizador_funcion import normalizar_nombre
+from app.normalizador import normalizar_nombre_funcion
 from dateutil.relativedelta import relativedelta
 from datetime import date
 
 
 
-def get_gemma_response(prompt: str, max_retries: int = 2) -> str:
+def get_ia_response(prompt: str, max_retries: int = 2) -> str:
     """
     Envía un prompt al modelo Gemma y retorna su respuesta de texto.
     """
@@ -199,26 +199,29 @@ def generate_structured_response(prompt: str, max_retries: int = 2) -> str:
 
 
 
+
 def analyze_question_with_ai(user_question: str) -> dict:
+
     prompt = f"""
+    sistema: Tu tarea es analizar la siguiente pregunta del usuario y devolver un JSON con la estructura definida. 
     configuracion:
     idioma: español
     formato: json
     reglas:
     - Inferir ambigüedades
     - No explicaciones
-    - Retornar vacío si no se entiende
-    - campo funcion:
-        - Genera nombre más comun, corto, claro y utilizado, 
-        - Prioriza el uso de sustantivos y complementos relevantes.
-        - Omite palabras redundantes o poco informativas.
-
+    - Retornar vacío si no se entiende      
     - claridad: "Evaluar lógica y coherencia de solicitud"
+    - campo funcion:
+        - El nombre debe seguir el patrón <verbo>_<objeto>[_<detalle_opcional>].
+        - Solamente 4 palabras como maximo
+        - Prioriza el uso de sustantivos y complementos relevantes.
+        - El nombre de la función debe reflejar directamente la intención.
     - campo parametros:
         - Inferir valores completos y correctos para la función especificada
-        - Valor en snake_case
+        - Valor en snake_case           
+
     estructura_salida:
-    funcion: "snake_case"
     palabras_clave: "lista"
     entidades: "lista objetos"
     intencion: "deducir proposito de solicitud muy breve"
@@ -226,9 +229,8 @@ def analyze_question_with_ai(user_question: str) -> dict:
     confianza: "1-9"
     claridad: "alta | media | baja"
     original: "corregido"
-    parametros: {{"clave": "valoe"}} 
-
-
+    funcion: "snake_case"
+    parametros: {{"clave": "valoe"}}
     solicitud: >
         {user_question}
     """.strip()
@@ -255,7 +257,8 @@ def analyze_question_with_ai(user_question: str) -> dict:
 
     # Si JSON válido, normalizar y devolver dict
     return normalize_before_retrieval(result)
-    #return result
+    # return result["funcion"]
+
 
 
 
@@ -270,7 +273,7 @@ def normalize_before_retrieval(data: dict) -> dict:
             "funcion": "error_json_invalido",
             "parametros": {},
             "resumen": data.get("error", "Error desconocido"),
-            "palabras_clave": [],            
+            "palabras_clave": [],
             "confianza": 0,
             "claridad": "baja",
             "original": data.get("original", ""),
@@ -298,16 +301,16 @@ def normalize_before_retrieval(data: dict) -> dict:
 
 
     if data.get("claridad") == "alta":
-        
+
         data["estado"] = "aprobado"
 
-        
+
         # Atajos para evitar repetir
         palabra_clave= data.get("palabras_clave", [])  # tokens clave detectados
         parametro = data["parametros"]  # donde se guardarán todos los parámetros
 
         hoy = datetime.date.today()
-        
+
 
         # en el parámetro 'fecha' usando un diccionario de conversión precalculado
         fecha = {
@@ -323,12 +326,11 @@ def normalize_before_retrieval(data: dict) -> dict:
 
 
 
-
         param_keys = list(parametro.keys())
         for key in param_keys:
             if key.lower() == "periodo":
                 valor = str(parametro.pop(key)).strip().lower()
-                
+
                 match valor:
                     case "mes":
                         parametro["mes_actual"] = hoy.strftime("%Y-%m")
@@ -344,7 +346,7 @@ def normalize_before_retrieval(data: dict) -> dict:
                         parametro["año_siguiente"] = str(hoy.year + 1)  # 2025
                     case _:
                         parametro[key] = valor  # Conserva el original
-                                        
+
 
 
 
@@ -356,18 +358,15 @@ def normalize_before_retrieval(data: dict) -> dict:
 
     else:
         data["funcion"] = "desconocida"
-        data["estado"] = "rechazado"    
+        data["estado"] = "rechazado"
 
 
-    
-    
-    
     # ⬇️ Normalizar el nombre de la función aquí
-    data["funcion"] = normalizar_nombre(data["funcion"])
+    data["funcion"] = normalizar_nombre_funcion(data["funcion"])
 
 
     # Ahora construimos el diccionario de salida con el orden deseado
-    ordered_data = {
+    ordered_data = {        
         "funcion": data["funcion"],
         "parametros": data["parametros"],
         "palabras_clave": data["palabras_clave"],
@@ -380,11 +379,9 @@ def normalize_before_retrieval(data: dict) -> dict:
         "estado": data.get("estado", "")
     }
 
+
+
+
+
+
     return ordered_data
-
-
-
-
-
-
-

@@ -1,5 +1,5 @@
 # run.py
-from app.main import app
+from app.app import app
 import bottle
 
 if __name__ == '__main__':

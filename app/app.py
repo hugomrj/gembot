@@ -1,26 +1,24 @@
 import time
 import json
+from bottle import static_file
 from bottle import Bottle, request, response, hook, JSONPlugin
-from app.services import analyze_question_with_ai, generate_rag_response, get_gemma_response
+from app.services import analyze_question_with_ai, generate_rag_response, get_ia_response
 
 app = Bottle()
 
 # Plugin JSON con formato bonito y UTF-8
 app.install(JSONPlugin(json_dumps=lambda s: json.dumps(s, indent=2, ensure_ascii=False)))
 
-# Configuración de CORS (opcional pero recomendado para desarrollo)
+
 def enable_cors(fn):
     def _enable_cors(*args, **kwargs):
         response.headers['Access-Control-Allow-Origin'] = '*'
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type'
-        
+        response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, Authorization'
         if request.method == 'OPTIONS':
             return {}
         return fn(*args, **kwargs)
     return _enable_cors
-
-
 
 
 # Ruta principal
@@ -39,7 +37,7 @@ def generate_text_with_gemma():
             return {"error": "Falta el campo 'prompt'"}
 
         prompt = data['prompt']
-        gemma_output = get_gemma_response(prompt)
+        gemma_output = get_ia_response(prompt)
         return {"response": gemma_output}
 
     except Exception as e:
@@ -142,6 +140,12 @@ def ping():
         "message": "pong",
         "response_time_ms": round((end - start) * 1000, 2)
     }
+
+
+@app.route('/tester')
+def serve_tester():
+    return static_file("test_api.html", root="./static")
+
 
 # Para PythonAnywhere
 application = app
