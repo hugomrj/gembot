@@ -1,3 +1,4 @@
+import os
 import time
 import json
 from bottle import static_file
@@ -8,6 +9,12 @@ app = Bottle()
 
 # Plugin JSON con formato bonito y UTF-8
 app.install(JSONPlugin(json_dumps=lambda s: json.dumps(s, indent=2, ensure_ascii=False)))
+
+# BASE_DIR = carpeta donde está app.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# STATIC_DIR = carpeta "static" al mismo nivel que "app"
+STATIC_DIR = os.path.join(BASE_DIR, "..", "static")
 
 
 def enable_cors(fn):
@@ -144,8 +151,10 @@ def ping():
 
 @app.route('/tester')
 def serve_tester():
-    return static_file("test_api.html", root="./static")
-
+    file_path = os.path.join(STATIC_DIR, "test_api.html")
+    if not os.path.exists(file_path):
+        return {"error": f"No se encontró el archivo en {file_path}"}
+    return static_file("test_api.html", root=STATIC_DIR)
 
 # Para PythonAnywhere
 application = app
